@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가상 카지노 · 체험판</title>
+<style>
+  :root{
+    --bg:#08080a; --panel:#151517; --panel2:#0d0d0f;
+    --line:rgba(255,255,255,.08); --txt:#f1f1f4; --muted:#8c8c94;
+    --gold:#caa75c;                       /* 미세 메탈 포인트 */
+    --green:#36d399; --red:#e4222f; --red-soft:#ff414c; --red-deep:#7e0e15;
+    --accent:#e4222f;
+    --shadow:0 22px 55px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:"Pretendard","Segoe UI",system-ui,sans-serif;
+    background:
+      radial-gradient(1000px 540px at 50% -10%, rgba(228,34,47,.15), transparent 60%),
+      radial-gradient(900px 720px at 50% 118%, rgba(228,34,47,.05), transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+    color:var(--txt); min-height:100vh; padding:24px 16px 60px;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* 상하단 레드 장식선 */
+  body::before, body::after{
+    content:""; position:fixed; left:0; right:0; height:2px; z-index:5; pointer-events:none;
+    background:linear-gradient(90deg,transparent,var(--red),transparent);
+  }
+  body::before{top:0} body::after{bottom:0}
+  .wrap{max-width:880px; margin:0 auto}
+  header{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px}
+  h1{font-size:22px; margin:0; letter-spacing:1.5px; font-weight:800; text-transform:uppercase}
+  h1 span{color:var(--red)}
+  h1 small{text-transform:none; letter-spacing:0}
+  .balance{background:linear-gradient(180deg,#1a1a1d,#121214); border:1px solid var(--line); border-radius:14px; padding:10px 20px; box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.05)}
+  .balance small{display:block; color:var(--muted); font-size:10px; letter-spacing:2px; text-transform:uppercase}
+  .balance b{font-size:25px; color:var(--gold); letter-spacing:.5px}
+  .coin::before{content:"◆ "; color:var(--red); font-size:.6em; vertical-align:middle}
+
+  .tabs{display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap}
+  .tabs button{
+    background:var(--panel); color:var(--muted); border:1px solid var(--line);
+    padding:10px 18px; border-radius:10px; cursor:pointer; font-size:14px; font-weight:600;
+    letter-spacing:.3px; transition:.15s;
+  }
+  .tabs button.active{background:#c81b27; color:#fff; border-color:#9c1018; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  .tabs button:hover{color:var(--txt); border-color:rgba(228,34,47,.5)}
+
+  .card{background:linear-gradient(180deg,#161618,#0f0f11); border:1px solid var(--line); border-radius:18px; padding:24px;
+    box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.04); margin-bottom:18px}
+  .game{display:none}
+  .game.active{display:block; animation:fade .25s ease}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+
+  .bet-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:18px 0}
+  .bet-row label{color:var(--muted); font-size:13px}
+  input[type=number]{
+    background:var(--panel2); border:1px solid var(--line); color:var(--txt);
+    border-radius:10px; padding:10px 12px; width:120px; font-size:16px; font-weight:700; transition:.15s;
+  }
+  input[type=number]:focus{outline:none; border-color:var(--red); box-shadow:0 0 0 3px rgba(228,34,47,.2)}
+  .chip{background:var(--panel2); border:1px solid var(--line); color:var(--txt); padding:8px 12px; border-radius:8px; cursor:pointer; font-size:13px; transition:.15s}
+  .chip:hover{border-color:var(--accent); color:var(--red-soft)}
+
+  button.play{
+    background:#c81b27; color:#fff; border:1px solid #9c1018;
+    padding:14px 30px; border-radius:12px; font-size:16px; font-weight:800; letter-spacing:.6px; cursor:pointer;
+    box-shadow:0 4px 10px rgba(0,0,0,.35); transition:.12s;
+  }
+  button.play:hover{transform:translateY(-1px); background:#d4222e}
+  button.play:active{transform:translateY(1px)}
+  button:disabled{opacity:.45; cursor:not-allowed; box-shadow:none}
+
+  /* slot machine cabinet */
+  /* 무광 스틸 캐비닛 */
+  .slot-machine{position:relative; width:330px; max-width:100%; margin:16px auto 26px;
+    background:linear-gradient(180deg,#b3b7bc 0%,#a0a4a9 50%,#8d9197 100%);
+    border-radius:30px 30px 16px 16px; padding:18px 20px 24px;
+    box-shadow:
+      0 26px 44px -14px rgba(0,0,0,.8),                    /* 바닥 접지 그림자 → 공간감 */
+      0 0 0 2px #a7abb0 inset, 0 0 0 4px #74787e inset}     /* 무광 베젤 */
+  .slot-marquee{text-align:center; font-weight:900; letter-spacing:4px; color:#9a1414; font-size:15px;
+    background:#e9dcb8; border:1px solid #c4a86c; border-radius:10px; padding:8px; margin-bottom:16px;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.12)}
+  .slot-window{position:relative; display:flex; gap:7px; justify-content:center; overflow:hidden;
+    background:#161719; padding:10px; border-radius:12px;
+    box-shadow:inset 0 0 0 3px #2a2c2f, inset 0 0 0 4px #5a5e63, inset 0 6px 14px rgba(0,0,0,.7)}
+  .reel{width:82px; height:92px; overflow:hidden; border-radius:8px; position:relative;
+    background:linear-gradient(180deg,#c9c6bc 0%,#d2cfc6 50%,#c5c2b8 100%);
+    box-shadow:inset 0 12px 14px -9px rgba(0,0,0,.45), inset 0 -12px 14px -9px rgba(0,0,0,.45),
+      inset 0 0 0 1px rgba(0,0,0,.12)}
+  .strip{display:flex; flex-direction:column; will-change:transform}
+  .strip .sym{height:90px; flex:0 0 90px; display:flex; align-items:center; justify-content:center; font-size:46px}
+  .payline{position:absolute; left:8px; right:8px; top:50%; height:3px; transform:translateY(-50%); z-index:3;
+    background:linear-gradient(90deg,transparent,var(--red),transparent); pointer-events:none}
+  .slot-coinslot{width:64px; height:6px; background:#1a0508; border-radius:4px; margin:14px auto 0;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.85), 0 1px 0 rgba(255,255,255,.12)}
+  /* lever */
+  .lever{position:absolute; right:-30px; bottom:24px; width:30px; height:150px; cursor:pointer}
+  .lever-base{position:absolute; right:10px; bottom:0; width:18px; height:32px; border-radius:6px;
+    background:linear-gradient(180deg,#9a9a9a,#3d3d3d); box-shadow:0 2px 4px rgba(0,0,0,.5)}
+  .lever-arm{position:absolute; right:14px; bottom:22px; width:10px; height:118px; transform-origin:bottom center;
+    transition:transform .45s cubic-bezier(.3,1.4,.5,1)}
+  .lever-rod{position:absolute; bottom:0; left:0; width:10px; height:118px; border-radius:6px;
+    background:linear-gradient(90deg,#7e8288,#9296,#9a9ea4 50%,#787c82);
+    box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .lever-knob{position:absolute; top:-18px; left:-11px; width:32px; height:32px; border-radius:50%;
+    background:radial-gradient(circle at 38% 32%,#34343a,#161618 70%);
+    box-shadow:0 3px 6px rgba(0,0,0,.55), inset 0 -4px 6px rgba(0,0,0,.45)}
+  .lever:hover .lever-knob{filter:brightness(1.12)}
+  .lever.pulling .lever-arm{transform:rotate(78deg); transition:transform .12s ease-in}
+
+  /* dice (3D 던지기) */
+  .dice-stage{position:relative; height:216px; display:flex; align-items:center; justify-content:center;
+    perspective:740px; perspective-origin:50% 30%; margin:6px 0 2px}
+  /* 책상 위 시점: 카메라를 비스듬히 내려다보게 기울임 */
+  .dice-cam{position:relative; transform-style:preserve-3d; transform:rotateX(42deg); transform-origin:center 60%}
+  .dice-thrower{transform-style:preserve-3d; will-change:transform}
+  .dice-thrower.throwing{animation:diceThrow 1.25s cubic-bezier(.25,.7,.3,1)}
+  @keyframes diceThrow{
+    0%{transform:translateY(58px) translateX(-26px) scale(.65)}
+    22%{transform:translateY(-78px) translateX(6px) scale(1.08)}
+    45%{transform:translateY(-24px) translateX(0) scale(1)}
+    68%{transform:translateY(-46px)}
+    85%{transform:translateY(0)}
+    92%{transform:translateY(-12px)}
+    100%{transform:translateY(0)}
+  }
+  .dice-cube{position:relative; width:84px; height:84px; margin:0 auto; transform-style:preserve-3d}
+  /* 빨간 투명 글래스 다이스 (레퍼런스) */
+  /* 무광 레드 다이스 */
+  .dice-cube .face{position:absolute; width:84px; height:84px; box-sizing:border-box; padding:11px; gap:2px;
+    display:grid; grid-template:repeat(3,1fr)/repeat(3,1fr);
+    background:linear-gradient(150deg,#c01620 0%,#a51018 55%,#860c12 100%);
+    border-radius:16px; border:1px solid rgba(120,10,16,.6);
+    box-shadow:inset 0 0 22px rgba(0,0,0,.32)}
+  .dice-cube .pip{align-self:center; justify-self:center; width:16px; height:16px; border-radius:50%;
+    background:#ece9df;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.28)}
+  .dice-cube .f1{transform:translateZ(42px)}
+  .dice-cube .f6{transform:rotateY(180deg) translateZ(42px)}
+  .dice-cube .f2{transform:rotateY(90deg) translateZ(42px)}
+  .dice-cube .f5{transform:rotateY(-90deg) translateZ(42px)}
+  .dice-cube .f4{transform:rotateX(90deg) translateZ(42px)}
+  .dice-cube .f3{transform:rotateX(-90deg) translateZ(42px)}
+  .dice-shadow{position:absolute; bottom:26px; left:50%; width:104px; height:22px; transform:translateX(-50%);
+    background:radial-gradient(ellipse,rgba(0,0,0,.6),transparent 72%); border-radius:50%}
+  .dice-stage:has(.dice-thrower.throwing) .dice-shadow{animation:diceShadow 1.25s ease}
+  @keyframes diceShadow{0%,100%{transform:translateX(-50%) scale(1);opacity:.5}40%{transform:translateX(-50%) scale(.6);opacity:.2}}
+  .seg{display:flex; gap:8px; justify-content:center; margin:14px 0}
+  .seg button{flex:1; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); cursor:pointer; font-weight:600; transition:.15s}
+  .seg button:hover{border-color:rgba(228,34,47,.5)}
+  .seg button.sel{border-color:var(--red); background:rgba(228,34,47,.12); box-shadow:inset 0 0 0 1px var(--red)}
+
+  /* coin */
+  .coin-stage{position:relative; height:240px; display:flex; align-items:center; justify-content:center;
+    perspective:820px; perspective-origin:50% 32%; margin:6px 0}
+  /* 책상 위 시점: 카메라를 비스듬히 내려다보게 기울임 */
+  .coin-cam{position:relative; transform-style:preserve-3d; transform:rotateX(46deg); transform-origin:center 60%}
+  /* 위로 튀어오르는 포물선 점프 */
+  .coin-toss{transform-style:preserve-3d; will-change:transform}
+  .coin-toss.toss{animation:cointoss 1.4s cubic-bezier(.33,0,.4,1)}
+  @keyframes cointoss{
+    0%{transform:translateY(0) scale(1)}
+    12%{transform:translateY(-30px) scale(1.04)}
+    50%{transform:translateY(-160px) scale(1.06)}
+    88%{transform:translateY(-26px) scale(1.02)}
+    96%{transform:translateY(0) scale(.98)}     /* 착지 임팩트 */
+    100%{transform:translateY(0) scale(1)}
+  }
+  /* 가로축으로 앞뒤로 넘어가는 회전 */
+  .coin3d{width:108px; height:108px; position:relative; transform-style:preserve-3d; transform:rotateX(0deg)}
+  .coin3d.flip{animation:coinflip 1.4s linear}
+  @keyframes coinflip{
+    0%{transform:rotateX(0)}
+    100%{transform:rotateX(var(--end))}
+  }
+  .coin-face{position:absolute; inset:0; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:36px; font-weight:900; backface-visibility:hidden}
+  /* 입체 골드 코인: 앞/뒤 면을 두께만큼 Z축으로 분리 (--ct = 두께) */
+  .coin3d{--ct:20px}
+  .coin-face.heads{color:#fff0f0;
+    transform:translateZ(calc(var(--ct)/2));
+    background:radial-gradient(circle at 50% 46%, #c01c27 0%, #a01018 60%, #7a0c12 100%);
+    border:5px solid #840f17;
+    box-shadow:inset 0 0 18px rgba(0,0,0,.32)}
+  .coin-face.tails{color:#e8e8ea; transform:rotateX(180deg) translateZ(calc(var(--ct)/2));
+    background:radial-gradient(circle at 50% 46%, #2c2c30 0%, #161618 60%, #0a0a0c 100%);
+    border:5px solid #242428;
+    box-shadow:inset 0 0 18px rgba(0,0,0,.5)}
+  /* 옆면(원통 테두리) — JS로 조각 생성 · 무광 건메탈 */
+  .coin-edge{position:absolute; inset:0; transform-style:preserve-3d; transform:rotateX(90deg)}
+  .coin-edge i{position:absolute; left:50%; top:50%; width:12px; height:var(--ct); margin:calc(var(--ct)/-2) 0 0 -6px;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px),
+      linear-gradient(to bottom,#9a9ea3 0%,#83878c 50%,#6c7075 100%)}
+  /* 바닥 그림자: 동전이 높이 뜰수록 작고 옅어짐 */
+  .coin-shadow{position:absolute; bottom:28px; left:50%; width:110px; height:24px; transform:translateX(-50%);
+    background:radial-gradient(ellipse,rgba(0,0,0,.6),transparent 72%); border-radius:50%}
+  .coin-stage:has(.coin-toss.toss) .coin-shadow{animation:coinshadow 1.4s cubic-bezier(.33,0,.4,1)}
+  @keyframes coinshadow{
+    0%,100%{transform:translateX(-50%) scale(1); opacity:.5}
+    50%{transform:translateX(-50%) scale(.5); opacity:.15}
+  }
+  .streak-info{text-align:center; color:var(--muted); font-size:13px; margin:10px 0}
+  .streak-info b{color:var(--red-soft)}
+
+  /* camera / gesture */
+  .cam-panel{margin-top:20px; border-top:1px solid var(--line); padding-top:18px}
+  .cam-toggle{background:var(--panel2); border:1px solid var(--line); color:var(--txt);
+    padding:11px 20px; border-radius:10px; cursor:pointer; font-size:14px; font-weight:600; transition:.15s}
+  .cam-toggle:hover{border-color:var(--accent)}
+  .cam-toggle.on{background:#c81b27; border-color:#9c1018; color:#fff; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  .cam-hint{text-align:center; color:var(--muted); font-size:12px; margin-top:10px; line-height:1.6}
+  .cam-hint b{color:var(--red-soft)}
+  .cam-stage{position:relative; width:320px; max-width:100%; aspect-ratio:4/3; margin:16px auto 0;
+    border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#000}
+  .cam-stage video,.cam-stage canvas{position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; transform:scaleX(-1)} /* 거울 모드 */
+  .cam-status{position:absolute; left:10px; top:10px; background:rgba(0,0,0,.55); color:#fff;
+    font-size:12px; padding:5px 10px; border-radius:8px; z-index:2}
+  .cam-stage.flash{animation:camflash .35s ease}
+  @keyframes camflash{0%{box-shadow:inset 0 0 0 4px var(--red)}100%{box-shadow:inset 0 0 0 0 transparent}}
+  .cam-meter{position:absolute; left:10px; right:10px; bottom:10px; height:6px; background:rgba(255,255,255,.15);
+    border-radius:6px; overflow:hidden; z-index:2}
+  .cam-meter span{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--green),var(--gold),var(--red-soft)); transition:width .05s linear}
+
+  /* charge (코인 구걸) */
+  .beg-stage{position:relative; min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:14px; padding-top:8px}
+  .beg-bubble{background:#1a1a1d; color:#f1f1f4; border:1px solid var(--line); font-weight:700; font-size:14px; padding:8px 16px; border-radius:16px;
+    position:relative; box-shadow:0 6px 16px rgba(0,0,0,.45); opacity:.98}
+  .beg-bubble::after{content:''; position:absolute; bottom:-8px; left:50%; transform:translateX(-50%);
+    border:8px solid transparent; border-top-color:#1a1a1d; border-bottom:0}
+  .beg-bubble.pop{animation:bubblePop .3s ease}
+  @keyframes bubblePop{0%{transform:scale(.6); opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1); opacity:.97}}
+  .beg-hands{position:relative; height:96px; display:flex; align-items:center; justify-content:center; filter:drop-shadow(0 6px 6px rgba(0,0,0,.4))}
+  .beg-hand{font-size:72px; line-height:1; display:inline-block; will-change:transform}
+  .beg-hand.left{ animation:rubL 1.2s ease-in-out infinite }
+  .beg-hand.right{ margin-left:-24px; animation:rubR 1.2s ease-in-out infinite }
+  @keyframes rubL{0%,100%{transform:translateY(-5px) rotate(13deg)}50%{transform:translateY(7px) rotate(13deg)}}
+  @keyframes rubR{0%,100%{transform:scaleX(-1) translateY(7px) rotate(13deg)}50%{transform:scaleX(-1) translateY(-5px) rotate(13deg)}}
+  /* 빌기 모드: 미친 듯이 비비기 + 떨림 */
+  .beg-hands.begging{animation:begShake .26s ease-in-out infinite}
+  .beg-hands.begging .beg-hand.left{ animation:rubL .16s linear infinite }
+  .beg-hands.begging .beg-hand.right{ animation:rubR .16s linear infinite }
+  @keyframes begShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+  .coin-drop{position:absolute; top:0; font-size:26px; pointer-events:none;
+    animation:coinFall 1s ease-in forwards}
+  @keyframes coinFall{0%{transform:translateY(-12px) scale(.5); opacity:0}20%{opacity:1}
+    100%{transform:translateY(130px) rotate(360deg); opacity:0}}
+
+  .result{text-align:center; font-size:18px; font-weight:800; min-height:28px; margin-top:14px}
+  .result.win{color:var(--green)}
+  .result.lose{color:var(--red)}
+  .payout-info{color:var(--muted); font-size:13px; text-align:center; margin-top:6px}
+
+  /* stats */
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px}
+  .stat{background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center}
+  .stat small{display:block; color:var(--muted); font-size:11px; margin-bottom:6px}
+  .stat b{font-size:20px}
+  .net.pos{color:var(--green)} .net.neg{color:var(--red)}
+
+  .warn{background:rgba(228,34,47,.07); border:1px solid rgba(228,34,47,.28); color:#e7a6aa;
+    border-radius:12px; padding:14px 16px; font-size:13px; line-height:1.6; margin-top:18px}
+  .reset{background:transparent; border:1px solid var(--line); color:var(--muted); padding:8px 14px; border-radius:8px; cursor:pointer; font-size:12px}
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--panel2);
+    border:1px solid var(--line); padding:12px 20px; border-radius:10px; box-shadow:var(--shadow); opacity:0; transition:.3s; pointer-events:none}
+  .toast.show{opacity:1}
+
+  /* ===== UI 개선: 잔액 강조 / 당첨 연출 ===== */
+  .balance{transition:transform .15s ease}
+  .balance.bump{transform:scale(1.07)}
+  .balance b{transition:color .25s ease, text-shadow .25s ease}
+  .balance b.up{color:var(--green)}
+  .balance b.down{color:var(--red)}
+
+  /* 결과 텍스트 등장 팝 */
+  .result.win{animation:resPop .42s cubic-bezier(.2,1.3,.4,1)}
+  @keyframes resPop{0%{transform:scale(.75); opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1); opacity:1}}
+
+  /* 컨페티 / 코인 샤워 레이어 */
+  #fx{position:fixed; inset:0; pointer-events:none; z-index:50; overflow:hidden}
+  .confetti{position:absolute; top:-30px; will-change:transform,opacity; animation:confFall linear forwards}
+  @keyframes confFall{
+    0%{transform:translateY(-30px) rotate(0); opacity:1}
+    100%{transform:translateY(106vh) rotate(720deg); opacity:.85}
+  }
+
+  /* 잭팟 배너 (대박 시) */
+  .jackpot{position:fixed; left:50%; top:34%; transform:translateX(-50%); z-index:60; pointer-events:none;
+    font-size:42px; font-weight:900; letter-spacing:4px; text-align:center; white-space:nowrap; text-transform:uppercase;
+    color:#fff; padding:18px 46px; border-radius:16px;
+    background:#b81824; border:1px solid rgba(255,255,255,.18);
+    box-shadow:0 16px 40px rgba(0,0,0,.6); opacity:0}
+  .jackpot small{display:block; font-size:16px; letter-spacing:1px; margin-top:6px; color:#ffd2d5; text-transform:none}
+  .jackpot.show{animation:jackpotIn 1.7s ease forwards}
+  @keyframes jackpotIn{
+    0%{opacity:0; transform:translateX(-50%) scale(.4) rotate(-6deg)}
+    16%{opacity:1; transform:translateX(-50%) scale(1.14) rotate(2deg)}
+    28%{transform:translateX(-50%) scale(1) rotate(0)}
+    82%{opacity:1; transform:translateX(-50%) scale(1)}
+    100%{opacity:0; transform:translateX(-50%) scale(1.06)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .confetti{display:none}
+    .jackpot.show{animation:none; opacity:1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎰 가상 <span>카지노</span> <small style="color:var(--muted);font-weight:400">체험판</small></h1>
+    <div class="balance">
+      <small>보유 코인</small>
+      <b class="coin" id="balance">1,000</b>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="active" data-tab="slot">슬롯머신</button>
+    <button data-tab="dice">주사위</button>
+    <button data-tab="coin">동전</button>
+    <button data-tab="charge">충전</button>
+    <button data-tab="stats">통계</button>
+  </div>
+
+  <!-- SLOT -->
+  <div class="card game active" id="slot">
+    <div class="slot-machine">
+      <div class="slot-marquee">★ LUCKY 777 ★</div>
+      <div class="slot-window">
+        <div class="reel"><div class="strip" id="s0"></div></div>
+        <div class="reel"><div class="strip" id="s1"></div></div>
+        <div class="reel"><div class="strip" id="s2"></div></div>
+        <div class="payline"></div>
+      </div>
+      <div class="slot-coinslot"></div>
+      <div class="lever" id="slotLever" title="레버를 당겨 스핀!">
+        <div class="lever-base"></div>
+        <div class="lever-arm"><span class="lever-rod"></span><span class="lever-knob"></span></div>
+      </div>
+    </div>
+    <div class="payout-info">3개 일치: 베팅 ×10 · 2개 일치: ×2 · 💎💎💎: ×30</div>
+    <div class="bet-row" style="justify-content:center">
+      <label>베팅</label>
+      <input type="number" id="slotBet" value="50" min="1">
+      <span class="chip" data-target="slotBet" data-v="10">+10</span>
+      <span class="chip" data-target="slotBet" data-v="50">+50</span>
+      <span class="chip" data-target="slotBet" data-v="100">+100</span>
+    </div>
+    <div style="text-align:center"><button class="play" id="slotPlay">레버 당기기 🕹️</button></div>
+    <div class="result" id="slotRes"></div>
+
+    <div class="cam-panel">
+      <div style="text-align:center">
+        <button class="cam-toggle" id="slotCamToggle">📷 손동작 모드 (주먹 쥐기)</button>
+      </div>
+      <div class="cam-hint">카메라에 손을 펼쳤다가 <b>주먹을 쥐면</b> 레버가 당겨지며 릴이 돌아갑니다.</div>
+      <div class="cam-stage" id="slotCamStage" style="display:none">
+        <video id="slotCamVideo" playsinline muted></video>
+        <canvas id="slotCamCanvas"></canvas>
+        <div class="cam-status" id="slotCamStatus">모델 로딩 중…</div>
+        <div class="cam-meter"><span id="slotCamMeter"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DICE -->
+  <div class="card game" id="dice">
+    <div class="dice-stage">
+      <div class="dice-cam">
+        <div class="dice-thrower" id="diceThrower">
+          <div class="dice-cube" id="diceCube"></div>
+        </div>
+      </div>
+      <div class="dice-shadow" id="diceShadow"></div>
+    </div>
+    <div class="payout-info">예측 적중 시 ×2 · 정확한 숫자 적중 시 ×6</div>
+    <div class="seg" id="diceSeg">
+      <button data-pred="low" data-mult="2">작다 (1-3)</button>
+      <button data-pred="high" data-mult="2">크다 (4-6)</button>
+    </div>
+    <div class="bet-row" style="justify-content:center">
+      <label>숫자 직접 예측(1~6)</label>
+      <input type="number" id="diceNum" min="1" max="6" placeholder="-" style="width:80px">
+    </div>
+    <div class="bet-row" style="justify-content:center">
+      <label>베팅</label>
+      <input type="number" id="diceBet" value="50" min="1">
+    </div>
+    <div style="text-align:center"><button class="play" id="dicePlay">굴리기!</button></div>
+    <div class="result" id="diceRes"></div>
+
+    <div class="cam-panel">
+      <div style="text-align:center">
+        <button class="cam-toggle" id="diceCamToggle">📷 손동작 모드 (움켜쥐고 던지기)</button>
+      </div>
+      <div class="cam-hint">손을 <b>움켜쥐었다가 활짝 펼치면</b> 주사위가 던져집니다.</div>
+      <div class="cam-stage" id="diceCamStage" style="display:none">
+        <video id="diceCamVideo" playsinline muted></video>
+        <canvas id="diceCamCanvas"></canvas>
+        <div class="cam-status" id="diceCamStatus">모델 로딩 중…</div>
+        <div class="cam-meter"><span id="diceCamMeter"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COIN -->
+  <div class="card game" id="coin">
+    <div class="coin-stage">
+      <div class="coin-cam">
+        <div class="coin-toss" id="coinToss">
+          <div class="coin3d" id="coin3d"><div class="coin-face heads">앞</div><div class="coin-face tails">뒤</div></div>
+        </div>
+      </div>
+      <div class="coin-shadow" id="coinShadow"></div>
+    </div>
+    <div class="payout-info">앞/뒤 적중 시 ×2 · 연속 적중하면 다음 판부터 배당이 누적됩니다 (스트릭)</div>
+    <div class="seg" id="coinSeg">
+      <button data-side="H" class="sel">🙂 앞면</button>
+      <button data-side="T">🔵 뒷면</button>
+    </div>
+    <div class="streak-info">현재 연승: <b id="coinStreak">0</b> · 다음 적중 배당 <b id="coinMult">×2</b></div>
+    <div class="bet-row" style="justify-content:center">
+      <label>베팅</label>
+      <input type="number" id="coinBet" value="50" min="1">
+      <span class="chip" data-target="coinBet" data-v="10">+10</span>
+      <span class="chip" data-target="coinBet" data-v="50">+50</span>
+    </div>
+    <div style="text-align:center"><button class="play" id="coinPlay">뒤집기!</button></div>
+    <div class="result" id="coinRes"></div>
+
+    <div class="cam-panel">
+      <div style="text-align:center">
+        <button class="cam-toggle" id="camToggle">📷 손가락 튕기기 모드 켜기</button>
+      </div>
+      <div class="cam-hint">카메라에 손을 비추고 검지를 <b>빠르게 튕기면</b> 동전이 뒤집힙니다.</div>
+      <div class="cam-stage" id="camStage" style="display:none">
+        <video id="camVideo" playsinline muted></video>
+        <canvas id="camCanvas"></canvas>
+        <div class="cam-status" id="camStatus">모델 로딩 중…</div>
+        <div class="cam-meter"><span id="camMeterFill"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARGE (코인 구걸) -->
+  <div class="card game" id="charge">
+    <div class="beg-stage">
+      <div class="beg-bubble" id="begBubble">사장님… 한 번만요 🥺</div>
+      <div class="beg-hands" id="begHands">
+        <span class="beg-hand left">🤲</span>
+        <span class="beg-hand right">🤲</span>
+        <span class="beg-spark" id="begSpark"></span>
+      </div>
+    </div>
+    <div class="payout-info">두 손 모아 싹싹 빌면 동정의 코인이 조금 떨어집니다… (무료)</div>
+    <div style="text-align:center; margin-top:8px">
+      <button class="play" id="begBtn">🙏 코인 구걸하기</button>
+    </div>
+    <div class="result" id="begRes"></div>
+
+    <div class="cam-panel">
+      <div style="text-align:center">
+        <button class="cam-toggle" id="chargeCamToggle">📷 손으로 빌어서 충전하기</button>
+      </div>
+      <div class="cam-hint">카메라 앞에서 <b>두 손을 모아 싹싹 비비면</b> 게이지가 차며 코인이 자동 충전됩니다.</div>
+      <div class="cam-stage" id="chargeCamStage" style="display:none">
+        <video id="chargeCamVideo" playsinline muted></video>
+        <canvas id="chargeCamCanvas"></canvas>
+        <div class="cam-status" id="chargeCamStatus">모델 로딩 중…</div>
+        <div class="cam-meter"><span id="chargeCamMeter"></span></div>
+      </div>
+    </div>
+
+    <div class="warn" style="margin-top:14px">
+      💸 이렇게 빌어서 채워도, 결국 게임 테이블에서 다시 잃게 됩니다. 그게 도박이 설계된 방식이에요.
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="card game" id="stats">
+    <div class="stats">
+      <div class="stat"><small>총 플레이</small><b id="stPlays">0</b></div>
+      <div class="stat"><small>누적 베팅</small><b id="stBet">0</b></div>
+      <div class="stat"><small>누적 획득</small><b id="stWon">0</b></div>
+      <div class="stat"><small>순손익</small><b class="net" id="stNet">0</b></div>
+      <div class="stat"><small>승률</small><b id="stRate">0%</b></div>
+      <div class="stat"><small>최고 잔액</small><b id="stPeak">1,000</b></div>
+    </div>
+    <div class="warn" id="lessonBox">
+      누적 통계를 보면 시간이 지날수록 순손익이 마이너스로 향하는 걸 확인할 수 있어요.
+      모든 게임은 <b>하우스에 유리하게(기대값 &lt; 1)</b> 설계되어 있기 때문입니다.
+    </div>
+    <div style="text-align:center; margin-top:16px">
+      <button class="reset" id="resetBtn">처음부터 다시 시작 (잔액·통계 초기화)</button>
+    </div>
+  </div>
+
+  <div class="warn">
+    ⚠️ 이 사이트는 <b>실제 돈을 전혀 사용하지 않는 교육·체험용</b>입니다. 모든 코인은 가상이며 현금화할 수 없습니다.
+    실제 도박은 중독성이 있고 장기적으로 손실을 보도록 설계되어 있습니다. 도박 문제 상담: <b>한국도박문제예방치유원 1336</b>.
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="fx"></div>
+
+<script>
+const S = {
+  bal: 1000, plays:0, bet:0, won:0, wins:0, peak:1000, coinStreak:0
+};
+const fmt = n => Math.round(n).toLocaleString('ko-KR');
+
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem('vcasino'));
+    if(d) Object.assign(S, d);
+  }catch(e){}
+  render();
+}
+function save(){ localStorage.setItem('vcasino', JSON.stringify(S)); }
+
+// 잔액 카운트업 애니메이션 (증가=초록, 감소=빨강 번쩍)
+let _shownBal = null, _balRaf = 0;
+function setBalance(target){
+  const el = document.getElementById('balance');
+  if(_shownBal === null || _shownBal === target){
+    _shownBal = target; el.textContent = fmt(target); return;
+  }
+  const from = _shownBal, diff = target - from;
+  el.classList.remove('up','down'); void el.offsetWidth;
+  el.classList.add(diff > 0 ? 'up' : 'down');
+  const box = el.closest('.balance');
+  box.classList.add('bump'); setTimeout(()=> box.classList.remove('bump'), 170);
+  cancelAnimationFrame(_balRaf);
+  const t0 = performance.now(), dur = Math.min(900, 260 + Math.abs(diff)*0.35);
+  (function tick(t){
+    const p = Math.min(1, (t - t0)/dur), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(from + diff*e);
+    if(p < 1){ _balRaf = requestAnimationFrame(tick); }
+    else { el.textContent = fmt(target); setTimeout(()=> el.classList.remove('up','down'), 450); }
+  })(t0);
+  _shownBal = target;
+}
+
+function render(){
+  setBalance(S.bal);
+  document.getElementById('stPlays').textContent = fmt(S.plays);
+  document.getElementById('stBet').textContent = fmt(S.bet);
+  document.getElementById('stWon').textContent = fmt(S.won);
+  const net = S.won - S.bet;
+  const netEl = document.getElementById('stNet');
+  netEl.textContent = (net>=0?'+':'') + fmt(net);
+  netEl.className = 'net ' + (net>=0?'pos':'neg');
+  document.getElementById('stRate').textContent = S.plays? Math.round(S.wins/S.plays*100)+'%':'0%';
+  document.getElementById('stPeak').textContent = fmt(S.peak);
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+// 당첨 연출: 컨페티/코인 샤워 + 잭팟 배너
+const fxLayer = document.getElementById('fx');
+function confettiBurst(count, emojis){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  for(let i=0;i<count;i++){
+    const c = document.createElement('span');
+    c.className = 'confetti';
+    c.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    c.style.left = Math.random()*100 + 'vw';
+    c.style.fontSize = (16 + Math.random()*22) + 'px';
+    const dur = 1.6 + Math.random()*1.4;
+    c.style.animationDuration = dur + 's';
+    c.style.animationDelay = (Math.random()*0.35) + 's';
+    fxLayer.appendChild(c);
+    setTimeout(()=> c.remove(), (dur + 0.6)*1000);
+  }
+}
+function jackpotBanner(title, sub){
+  const j = document.createElement('div');
+  j.className = 'jackpot';
+  j.innerHTML = title + (sub ? `<small>${sub}</small>` : '');
+  fxLayer.appendChild(j);
+  void j.offsetWidth; j.classList.add('show');
+  setTimeout(()=> j.remove(), 1750);
+}
+function celebrate(payout){
+  const ratio = lastBet > 0 ? payout / lastBet : 0;
+  if(ratio >= 10){
+    jackpotBanner('◆ JACKPOT ◆', `+${fmt(payout)} 코인`);
+    confettiBurst(90, ['🪙','💎','♦️','◆','✨']);
+  } else if(ratio >= 4){
+    confettiBurst(48, ['🪙','💎','♦️','✨']);
+  } else if(ratio > 0){
+    confettiBurst(24, ['🪙','✨']);
+  }
+}
+
+// 베팅 검증: 차감하고 베팅액 반환, 실패 시 null
+let lastBet = 0;
+function takeBet(input){
+  const bet = Math.floor(+input.value);
+  if(!bet || bet < 1){ toast('베팅액을 입력하세요'); return null; }
+  if(bet > S.bal){ toast('코인이 부족합니다'); return null; }
+  S.bal -= bet; S.bet += bet; S.plays++;
+  lastBet = bet;
+  return bet;
+}
+function settle(payout){ // payout = 돌려받는 총액(0이면 패배)
+  if(payout > 0){ S.bal += payout; S.won += payout; S.wins++; }
+  if(S.bal > S.peak) S.peak = S.bal;
+  save(); render();
+  if(payout > 0) celebrate(payout);
+}
+
+// ===== 탭 =====
+document.querySelectorAll('.tabs button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.game').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById(b.dataset.tab).classList.add('active');
+  };
+});
+// 칩 버튼
+document.querySelectorAll('.chip').forEach(c=>{
+  c.onclick = ()=>{
+    const t = document.getElementById(c.dataset.target);
+    t.value = (Math.floor(+t.value)||0) + (+c.dataset.v);
+  };
+});
+
+// ===== 슬롯 (레버 + 스크롤 릴) =====
+const SYMS = ['🍒','🔔','🍋','⭐','💎','7️⃣'];
+const slotBtn = document.getElementById('slotPlay');
+const slotLever = document.getElementById('slotLever');
+const STRIP_LEN = 30, SYM_H = 90, STOP_AT = STRIP_LEN - 4; // 멈출 위치(끝 근처)
+let slotSpinning = false;
+
+function fillStrip(stripEl, finalSym){
+  const arr = Array.from({length:STRIP_LEN}, ()=> SYMS[Math.floor(Math.random()*SYMS.length)]);
+  arr[STOP_AT] = finalSym;
+  stripEl.innerHTML = arr.map(s=>`<div class="sym">${s}</div>`).join('');
+}
+function placeAtStop(stripEl){ // 애니메이션 없이 최종 위치로
+  stripEl.style.transition = 'none';
+  stripEl.style.transform = `translateY(${-(STOP_AT*SYM_H)}px)`;
+}
+function runReel(stripEl, durMs){
+  stripEl.style.transition = 'none';
+  stripEl.style.transform = 'translateY(0)';
+  void stripEl.offsetWidth;                       // 리플로우 후 스핀
+  stripEl.style.transition = `transform ${durMs}ms cubic-bezier(.16,.72,.2,1)`;
+  stripEl.style.transform = `translateY(${-(STOP_AT*SYM_H)}px)`;
+}
+
+function doSlotSpin(){
+  if(slotSpinning) return false;
+  const bet = takeBet(document.getElementById('slotBet'));
+  if(bet===null) return false;
+  slotSpinning = true;
+  render();
+
+  // 레버를 내리는 동작
+  slotLever.classList.add('pulling');
+  setTimeout(()=> slotLever.classList.remove('pulling'), 160);
+
+  const final = [0,0,0].map(()=> SYMS[Math.floor(Math.random()*SYMS.length)]);
+  const strips = [0,1,2].map(i=> document.getElementById('s'+i));
+  const durs = [1500, 1900, 2300];                // 릴마다 시차를 두고 멈춤
+  strips.forEach((st,i)=> fillStrip(st, final[i]));
+  setTimeout(()=> strips.forEach((st,i)=> runReel(st, durs[i])), 200); // 레버 내려간 뒤 출발
+
+  slotBtn.disabled = true;
+  setTimeout(()=>{
+    slotBtn.disabled = false;
+    slotSpinning = false;
+    let mult = 0;
+    if(final[0]===final[1] && final[1]===final[2]) mult = final[0]==='💎' ? 30 : 10;
+    else if(final[0]===final[1] || final[1]===final[2] || final[0]===final[2]) mult = 2;
+    const payout = bet*mult;
+    settle(payout);
+    const res = document.getElementById('slotRes');
+    if(payout>0){ res.textContent = `🎉 ${mult}배 당첨! +${fmt(payout)} 코인`; res.className='result win'; }
+    else { res.textContent = `아쉽네요... -${fmt(bet)} 코인`; res.className='result lose'; }
+  }, 200 + 2300 + 250);
+}
+slotBtn.onclick = doSlotSpin;
+slotLever.onclick = doSlotSpin;
+window.__slotSpin = doSlotSpin;                          // 손동작(주먹 당기기)에서 호출
+// 초기 표시
+[0,1,2].forEach(i=>{ const st=document.getElementById('s'+i); fillStrip(st, SYMS[i*2]); placeAtStop(st); });
+
+// ===== 주사위 =====
+let dicePick = null;
+// 3D 주사위 큐브 구성
+const diceCube = document.getElementById('diceCube');
+const diceThrower = document.getElementById('diceThrower');
+const PIPS = {1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
+const FACE_DEF = [['f1',1],['f6',6],['f2',2],['f5',5],['f4',4],['f3',3]];
+const DICE_FINAL = {1:{x:0,y:0},2:{x:0,y:-90},3:{x:90,y:0},4:{x:-90,y:0},5:{x:0,y:90},6:{x:0,y:180}};
+(function buildDie(){
+  FACE_DEF.forEach(([cls,v])=>{
+    const face = document.createElement('div'); face.className = 'face ' + cls;
+    PIPS[v].forEach(p=>{
+      const pip = document.createElement('span'); pip.className = 'pip';
+      pip.style.gridRow = Math.ceil(p/3); pip.style.gridColumn = ((p-1)%3)+1;
+      face.appendChild(pip);
+    });
+    diceCube.appendChild(face);
+  });
+  diceCube.style.transform = 'rotateX(0deg) rotateY(0deg)'; // 초기 1
+})();
+let diceRolling = false;
+document.querySelectorAll('#diceSeg button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('#diceSeg button').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    dicePick = {pred:b.dataset.pred, mult:+b.dataset.mult};
+    document.getElementById('diceNum').value='';
+  };
+});
+document.getElementById('diceNum').oninput = ()=>{
+  document.querySelectorAll('#diceSeg button').forEach(x=>x.classList.remove('sel'));
+  dicePick = null;
+};
+const diceBtn = document.getElementById('dicePlay');
+function doDiceRoll(){
+  if(diceRolling) return;
+  const numIn = document.getElementById('diceNum');
+  const num = numIn.value==='' ? null : Math.floor(+numIn.value);
+  if(num===null && !dicePick){ toast('예측을 선택하세요'); return; }
+  const bet = takeBet(document.getElementById('diceBet'));
+  if(bet===null) return;
+  diceRolling = true;
+  render();
+
+  const roll = Math.floor(Math.random()*6)+1; // 1~6
+  const f = DICE_FINAL[roll];
+
+  // 손에서 던지는 포물선 + 큐브 회전
+  diceThrower.classList.remove('throwing'); void diceThrower.offsetWidth; diceThrower.classList.add('throwing');
+  diceCube.style.transition = 'none';
+  diceCube.style.transform = 'rotateX(0deg) rotateY(0deg)';
+  void diceCube.offsetWidth;
+  diceCube.style.transition = 'transform 1.2s cubic-bezier(.2,.75,.2,1)';
+  diceCube.style.transform = `rotateX(${1440 + f.x}deg) rotateY(${1080 + f.y}deg)`;
+
+  diceBtn.disabled = true;
+  setTimeout(()=>{
+    diceBtn.disabled = false;
+    diceRolling = false;
+    let mult = 0;
+    if(num!==null){ if(num===roll) mult = 6; }
+    else { if(dicePick.pred==='low' && roll<=3) mult = 2; else if(dicePick.pred==='high' && roll>=4) mult = 2; }
+    const payout = bet*mult;
+    settle(payout);
+    const res = document.getElementById('diceRes');
+    if(payout>0){ res.textContent = `🎉 적중! ${roll} · +${fmt(payout)} 코인`; res.className='result win'; }
+    else { res.textContent = `결과: ${roll} · -${fmt(bet)} 코인`; res.className='result lose'; }
+  }, 1300);
+}
+diceBtn.onclick = doDiceRoll;
+window.__diceRoll = doDiceRoll;                          // 손동작(움켜쥐고 펴기)에서 호출
+
+// ===== 동전 뒤집기 =====
+let coinPick = 'H';
+// 동전 옆면(원통 테두리) 조각 생성 → 두께감
+(function buildCoinEdge(){
+  const coin = document.getElementById('coin3d');
+  const N = 46, R = 51;
+  const edge = document.createElement('div'); edge.className = 'coin-edge';
+  for(let i=0;i<N;i++){
+    const a = 360/N*i;
+    const seg = document.createElement('i');
+    seg.style.transform = `rotateY(${a}deg) translateZ(${R}px)`;
+    // 원통 음영: 정면에 가까운 조각일수록 밝게
+    const b = (0.55 + 0.45*Math.abs(Math.cos(a*Math.PI/180))).toFixed(3);
+    seg.style.filter = `brightness(${b})`;
+    edge.appendChild(seg);
+  }
+  coin.insertBefore(edge, coin.firstChild);
+})();
+function coinNextMult(){ return Math.pow(2, S.coinStreak + 1); } // 0연승→×2, 1연승→×4 ...
+function coinRefresh(){
+  document.getElementById('coinStreak').textContent = S.coinStreak;
+  document.getElementById('coinMult').textContent = '×' + coinNextMult();
+}
+document.querySelectorAll('#coinSeg button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('#coinSeg button').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    coinPick = b.dataset.side;
+  };
+});
+const coinBtn = document.getElementById('coinPlay');
+let coinFlipping = false;
+function doCoinFlip(){
+  if(coinFlipping) return false;                       // 애니메이션 중 재진입 방지
+  const bet = takeBet(document.getElementById('coinBet'));
+  if(bet===null) return false;
+  coinFlipping = true;
+  render();
+
+  const mult = coinNextMult();              // 이번 판 적중 시 배당
+  const result = Math.random() < 0.5 ? 'H' : 'T';
+  const hit = result === coinPick;
+
+  // 점프(포물선) + 가로축 회전: 여러 바퀴 돌고 결과 면에서 멈춤
+  const coin3d = document.getElementById('coin3d');
+  const coinToss = document.getElementById('coinToss');
+  const spins = 6 * 360;                                  // 공중에서 6바퀴
+  const end = spins + (result === 'T' ? 180 : 0);
+  coin3d.style.setProperty('--end', end + 'deg');
+  coin3d.classList.remove('flip'); coinToss.classList.remove('toss');
+  void coin3d.offsetWidth;                                // 리플로우로 재생
+  coin3d.classList.add('flip'); coinToss.classList.add('toss');
+  coinBtn.disabled = true;
+
+  setTimeout(()=>{
+    coin3d.style.transform = 'rotateX(' + (result==='T'?180:0) + 'deg)';
+    coinToss.classList.remove('toss');
+    coinBtn.disabled = false;
+    coinFlipping = false;
+
+    const payout = hit ? bet*mult : 0;
+    settle(payout);
+    const res = document.getElementById('coinRes');
+    if(hit){
+      S.coinStreak++;
+      res.textContent = `🎉 ${result==='H'?'앞면':'뒷면'}! ${mult}배 · +${fmt(payout)} 코인 (${S.coinStreak}연승)`;
+      res.className = 'result win';
+    } else {
+      S.coinStreak = 0;
+      res.textContent = `${result==='H'?'앞면':'뒷면'}... 빗나갔어요 · -${fmt(bet)} 코인`;
+      res.className = 'result lose';
+    }
+    save(); coinRefresh();
+  }, 1400);
+  return true;
+}
+coinBtn.onclick = doCoinFlip;
+window.__coinFlip = doCoinFlip;                          // 카메라 제스처에서 호출
+
+// ===== 충전 (코인 구걸) =====
+const begBtn = document.getElementById('begBtn');
+const begHands = document.getElementById('begHands');
+const begBubble = document.getElementById('begBubble');
+const begRes = document.getElementById('begRes');
+const BEG_PLEAS = [
+  '사장님… 한 번만요 🥺','제발… 딱 한 판만 더 🙏','이번엔 진짜 딸 수 있어요!',
+  '차비만이라도… 🚕','집에 갈 돈은 남겨주세요…','싹싹 빌게요 진짜 ✨',
+  '한 번만 봐주세요 ㅠㅠ','마지막으로 한 번만!'
+];
+const BEG_COOLDOWN = 6000;
+
+function dropCoins(n){
+  for(let i=0;i<n;i++){
+    const c = document.createElement('span');
+    c.className = 'coin-drop'; c.textContent = '🪙';
+    c.style.left = (10 + Math.random()*80) + '%';
+    c.style.animationDelay = (Math.random()*0.3) + 's';
+    begHands.appendChild(c);
+    setTimeout(()=> c.remove(), 1400);
+  }
+}
+
+let begCooling = false;
+begBtn.onclick = ()=>{
+  if(begCooling) return;
+  begCooling = true;
+  begBtn.disabled = true;
+
+  // 싹싹 비는 연출
+  begHands.classList.add('begging');
+  begBubble.textContent = BEG_PLEAS[Math.floor(Math.random()*BEG_PLEAS.length)];
+  begBubble.classList.remove('pop'); void begBubble.offsetWidth; begBubble.classList.add('pop');
+
+  setTimeout(()=>{
+    begHands.classList.remove('begging');
+    // 잔액이 적을수록 동정 코인 조금 더
+    let amount = 30 + Math.floor(Math.random()*100);          // 30~129
+    if(S.bal < 50) amount += 50;
+    S.bal += amount;
+    if(S.bal > S.peak) S.peak = S.bal;
+    save(); render();
+    dropCoins(5);
+    begRes.textContent = `🪙 동정의 코인 +${fmt(amount)} 획득! (구걸도 실력이라면…)`;
+    begRes.className = 'result win';
+
+    // 쿨다운 카운트다운
+    let left = Math.ceil(BEG_COOLDOWN/1000);
+    begBtn.textContent = `🙏 다음 구걸까지 ${left}s`;
+    const iv = setInterval(()=>{
+      left--;
+      if(left > 0){ begBtn.textContent = `🙏 다음 구걸까지 ${left}s`; }
+      else {
+        clearInterval(iv);
+        begBtn.textContent = '🙏 코인 구걸하기';
+        begBtn.disabled = false; begCooling = false;
+      }
+    }, 1000);
+  }, 1300);
+};
+
+// 손동작(두 손 모아 빌기) 충전에서 호출
+window.__chargeCoins = function(n){
+  S.bal += n;
+  if(S.bal > S.peak) S.peak = S.bal;
+  save(); render();
+  dropCoins(3);
+  begRes.textContent = `🪙 비는 정성에 코인 +${fmt(n)} 충전!`;
+  begRes.className = 'result win';
+};
+// 화면 속 손(🤲)도 같이 비비게 하기
+window.__begRub = function(on){ begHands.classList.toggle('begging', !!on); };
+
+// ===== 리셋 =====
+document.getElementById('resetBtn').onclick = ()=>{
+  if(confirm('잔액과 모든 통계를 초기화할까요?')){
+    Object.assign(S, {bal:1000, plays:0, bet:0, won:0, wins:0, peak:1000, coinStreak:0});
+    save(); render(); coinRefresh(); toast('초기화되었습니다');
+  }
+};
+
+// 파산 체크
+function checkBroke(){
+  if(S.bal < 1){
+    setTimeout(()=>{
+      if(confirm('코인이 모두 떨어졌습니다 💸\n실제 도박이었다면 여기서 큰 돈을 잃었을 거예요.\n\n100 코인을 받아 다시 체험해보시겠어요?')){
+        S.bal = 100; save(); render();
+      }
+    }, 400);
+  }
+}
+const _settle = settle;
+settle = function(p){ _settle(p); checkBroke(); };
+
+load();
+coinRefresh();
+</script>
+
+<!-- ===== MediaPipe Tasks Vision: 손동작 제스처 (슬롯/주사위/동전 공용) ===== -->
+<script type="module">
+import { HandLandmarker, FilesetResolver, DrawingUtils }
+  from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+
+// 모델은 한 번만 로드해서 모든 게임이 공유
+let modelPromise = null;
+function ensureModel(){
+  if(!modelPromise){
+    modelPromise = (async ()=>{
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm");
+      return HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numHands: 2
+      });
+    })();
+  }
+  return modelPromise;
+}
+
+// ---- 손 분석 헬퍼 ----
+const dist = (a,b)=> Math.hypot(a.x-b.x, a.y-b.y);
+// 펴진 손가락 개수(검지~소지): 끝이 PIP보다 손목에서 더 멀면 펴진 것 → 방향에 무관
+function extendedFingers(lm){
+  const pairs = [[8,6],[12,10],[16,14],[20,18]];
+  let n = 0;
+  for(const [tip,pip] of pairs){
+    if(dist(lm[tip], lm[0]) > dist(lm[pip], lm[0]) * 1.05) n++;
+  }
+  return n;
+}
+// 손바닥 중심(손목 + MCP 평균)과 손 크기
+function palmCenter(lm){
+  const ids = [0,5,9,13,17];
+  let x=0,y=0; for(const i of ids){ x+=lm[i].x; y+=lm[i].y; }
+  return { x:x/ids.length, y:y/ids.length };
+}
+const handSpan = lm => dist(lm[0], lm[9]) || 1e-6;
+
+let activeCam = null; // 동시에 하나의 카메라만 사용
+
+function createGestureCam(cfg){
+  const el = id => document.getElementById(id);
+  const toggle = el(cfg.toggle), stage = el(cfg.stage), video = el(cfg.video),
+        canvas = el(cfg.canvas), statusEl = el(cfg.status), meter = el(cfg.meter);
+  const ctx = canvas.getContext('2d');
+  let model = null, drawer = null, running = false, stream = null, rafId = 0;
+  const st = {};
+
+  async function start(){
+    try{
+      if(activeCam && activeCam !== api) activeCam.stop();   // 다른 카메라 끄기
+      statusEl.textContent = '모델 로딩 중…';
+      model = await ensureModel();
+      drawer = drawer || new DrawingUtils(ctx);
+      stream = await navigator.mediaDevices.getUserMedia({ video:{width:480,height:360}, audio:false });
+      video.srcObject = stream; await video.play();
+      canvas.width = video.videoWidth || 480;
+      canvas.height = video.videoHeight || 360;
+      running = true; activeCam = api;
+      stage.style.display = 'block';
+      toggle.classList.add('on'); toggle.textContent = '⏹ 끄기';
+      statusEl.textContent = '손을 보여주세요';
+      cfg.reset(st);
+      loop();
+    }catch(err){
+      statusEl.textContent = '카메라 오류';
+      alert('카메라를 사용할 수 없습니다: ' + err.message +
+        '\n\n(file:// 로 열면 일부 브라우저가 카메라를 막습니다. 미리보기/로컬 서버/Chrome 에서 열어 주세요.)');
+      stop();
+    }
+  }
+  function stop(){
+    running = false; cancelAnimationFrame(rafId);
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+    video.srcObject = null; stage.style.display = 'none';
+    toggle.classList.remove('on'); toggle.textContent = cfg.label;
+    if(activeCam === api) activeCam = null;
+  }
+  function loop(){
+    if(!running) return;
+    const now = performance.now();
+    if(video.readyState >= 2){
+      const res = model.detectForVideo(video, now);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const hands = res.landmarks || [];
+      if(hands.length){
+        for(const h of hands){
+          drawer.drawConnectors(h, HandLandmarker.HAND_CONNECTIONS, { color:'#6b8aff', lineWidth:3 });
+          drawer.drawLandmarks(h, { color:'#ffcf4d', lineWidth:1, radius:3 });
+        }
+        const lm = hands[0];
+        const out = cfg.detect(lm, now, st, hands) || {};
+        if(out.meter != null) meter.style.width = Math.max(0, Math.min(100, out.meter)) + '%';
+        if(out.status) statusEl.textContent = out.status;
+        if(out.fire){
+          stage.classList.remove('flash'); void stage.offsetWidth; stage.classList.add('flash');
+          cfg.action();
+          cfg.reset(st);
+        }
+      }else{
+        meter.style.width = '0%';
+        statusEl.textContent = '손을 보여주세요';
+        cfg.reset(st);
+      }
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+  toggle.onclick = ()=> running ? stop() : start();
+  const api = { start, stop, get running(){ return running; } };
+  return api;
+}
+
+// ===== 동전: 검지 튕기기 (손 대비 상대 속도로 인식 → 거리·손 이동에 강건) =====
+const COIN_FLICK = 4.5, COIN_COOL = 1400;
+createGestureCam({
+  toggle:'camToggle', stage:'camStage', video:'camVideo', canvas:'camCanvas', status:'camStatus', meter:'camMeterFill',
+  label:'📷 손가락 튕기기 모드 켜기',
+  reset(st){ st.prev = null; st.prevT = 0; st.cool = st.cool || 0; st.peak = 0; },
+  detect(lm, now, st){
+    const wrist = lm[0], tip = lm[8];
+    const span = handSpan(lm);
+    // 손목 기준 검지끝 상대 위치를 손 크기로 정규화 → 손 전체 이동/카메라 거리 영향 제거
+    const rel = { x:(tip.x - wrist.x)/span, y:(tip.y - wrist.y)/span };
+    // 검지가 펴져 있는지(끝이 PIP 관절보다 손목에서 멀리) → 주먹 흔들림 오작동 방지
+    const extended = dist(tip, wrist) > dist(lm[6], wrist) * 1.05;
+
+    let speed = 0;
+    if(st.prev){
+      const dt = (now - st.prevT)/1000;
+      if(dt > 0.006) speed = Math.hypot(rel.x - st.prev.x, rel.y - st.prev.y)/dt;
+    }
+    st.prev = rel; st.prevT = now;
+
+    // 감쇠 피크: 순간 스파이크를 놓치지 않으면서 게이지로 보여줌
+    st.peak = Math.max(speed, (st.peak || 0) * 0.55);
+    const fire = extended && st.peak > COIN_FLICK && now > (st.cool || 0);
+    if(fire){ st.cool = now + COIN_COOL; st.peak = 0; }
+
+    return {
+      meter: st.peak / COIN_FLICK * 100,
+      fire,
+      status: fire ? '튕김 감지! 🪙'
+            : !extended ? '검지를 펴 주세요 ☝️'
+            : '검지를 빠르게 튕기세요'
+    };
+  },
+  action(){ window.__coinFlip && window.__coinFlip(); }
+});
+
+// ===== 슬롯: 손을 폈다가 주먹을 쥐면 레버 작동 =====
+const SLOT_COOL = 2900; // 슬롯 연출이 길어 쿨다운도 길게
+createGestureCam({
+  toggle:'slotCamToggle', stage:'slotCamStage', video:'slotCamVideo', canvas:'slotCamCanvas', status:'slotCamStatus', meter:'slotCamMeter',
+  label:'📷 손동작 모드 (주먹 쥐기)',
+  reset(st){ st.armed = false; st.cool = st.cool || 0; },
+  detect(lm, now, st){
+    const ext = extendedFingers(lm);
+    const isFist = ext <= 1;
+    const isOpen = ext >= 3;
+    if(isOpen) st.armed = true;                    // 손을 펴면 장전(연속 발동 방지)
+    let fire = false;
+    if(st.armed && isFist && now > (st.cool||0)){  // 주먹을 쥐는 순간 발동
+      fire = true; st.cool = now + SLOT_COOL; st.armed = false;
+    }
+    const status = st.armed ? '이제 주먹을 꽉 쥐세요! ✊ → 레버 당김'
+                            : (isFist ? '✋ 손을 한 번 폈다가 쥐어 주세요' : `준비 (편 손가락 ${ext})`);
+    return { meter: (4 - ext) / 4 * 100, fire, status }; // 주먹에 가까울수록 게이지 ↑
+  },
+  action(){ window.__slotSpin && window.__slotSpin(); }
+});
+
+// ===== 주사위: 움켜쥐었다가 활짝 펴서 던지기 =====
+const DICE_COOL = 1800;
+createGestureCam({
+  toggle:'diceCamToggle', stage:'diceCamStage', video:'diceCamVideo', canvas:'diceCamCanvas', status:'diceCamStatus', meter:'diceCamMeter',
+  label:'📷 손동작 모드 (움켜쥐고 던지기)',
+  reset(st){ st.armed = false; st.cool = st.cool || 0; },
+  detect(lm, now, st){
+    const ext = extendedFingers(lm);
+    const isFist = ext <= 1;
+    const isOpen = ext >= 3;
+    if(isFist) st.armed = true;                  // 움켜쥐면 장전
+    let fire = false;
+    if(st.armed && isOpen && now > (st.cool||0)){ // 폈을 때 발사
+      fire = true; st.cool = now + DICE_COOL;
+    }
+    const status = st.armed ? '이제 손을 활짝 펴서 던지세요! 🖐'
+                            : (isOpen ? '먼저 주먹으로 움켜쥐세요 ✊' : `준비 (편 손가락 ${ext})`);
+    return { meter: ext/4*100, fire, status };
+  },
+  action(){ window.__diceRoll && window.__diceRoll(); }
+});
+
+// ===== 충전: 두 손을 모아 빌면 코인 충전 =====
+const CHARGE_GAP = 1.7;     // 두 손 간격(손 크기 대비) 이 값보다 가까우면 "비는 중"
+const CHARGE_RATE = 85;     // 충전 속도 (%/초)
+const CHARGE_REWARD = 20;   // 게이지 100% 채울 때마다 지급 코인
+createGestureCam({
+  toggle:'chargeCamToggle', stage:'chargeCamStage', video:'chargeCamVideo', canvas:'chargeCamCanvas', status:'chargeCamStatus', meter:'chargeCamMeter',
+  label:'📷 손으로 빌어서 충전하기',
+  reset(st){ st.prog = 0; st.prevT = 0; },
+  detect(lm, now, st, hands){
+    const dt = st.prevT ? Math.min(0.1, (now - st.prevT)/1000) : 0;
+    st.prevT = now;
+    if(hands.length < 2){                       // 양손이 모두 보여야 함
+      st.prog = Math.max(0, (st.prog||0) - CHARGE_RATE*dt);
+      if(window.__begRub) window.__begRub(false);
+      return { meter: st.prog||0, status:'🙏 두 손을 모두 화면에 보여주세요' };
+    }
+    const [a,b] = hands;
+    const gap = dist(palmCenter(a), palmCenter(b)) / ((handSpan(a)+handSpan(b))/2);
+    const together = gap < CHARGE_GAP;
+    if(window.__begRub) window.__begRub(together);
+
+    let fire = false;
+    if(together){
+      st.prog = (st.prog||0) + CHARGE_RATE*dt;
+      if(st.prog >= 100){ st.prog = 0; fire = true; }
+      return { meter: st.prog, fire, status:'충전 중… 계속 싹싹 비세요 🙏✨' };
+    } else {
+      st.prog = Math.max(0, (st.prog||0) - CHARGE_RATE*dt*0.7);
+      return { meter: st.prog, status:'두 손을 더 가까이 모으세요 🙏' };
+    }
+  },
+  action(){ window.__chargeCoins && window.__chargeCoins(CHARGE_REWARD); }
+});
+
+// 탭을 바꾸면 켜져 있던 카메라를 자동으로 끔
+document.querySelectorAll('.tabs button').forEach(b=>{
+  b.addEventListener('click', ()=>{ if(activeCam) activeCam.stop(); });
+});
+window.addEventListener('beforeunload', ()=>{ if(activeCam) activeCam.stop(); });
+</script>
+</body>
+</html>

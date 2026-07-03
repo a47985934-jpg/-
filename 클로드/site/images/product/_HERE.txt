@@ -1,0 +1,10 @@
+ARK-FLUID 제품 이미지를 이 폴더에 아래 이름으로 저장하세요.
+(붙여넣은 5장을 각각 다운로드/저장하면 웹사이트가 자동으로 인식합니다)
+
+  perspective.jpg   ← image_c8413a (Perspective / 퍼스)   * Hero + 뷰어 메인
+  front.jpg         ← image_c8413e (Front / 프론트)
+  side.jpg          ← image_c8415c (Side / 사이드)
+  back.jpg          ← image_c84157 (Back / 백)
+  bottom.jpg        ← image_c84175 (Bottom / 아래)
+
+파일을 넣은 뒤 브라우저를 새로고침하면 360도 뷰어와 Hero에 실제 제품이 표시됩니다.

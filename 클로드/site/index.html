@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#040c1a" />
+<title>ARK-FLUID · 가오리를 닮은 무인 해상 정화 플랫폼</title>
+<meta name="description" content="ARK-FLUID — 자연에서 가장 효율적인 유선형 생명체 가오리에서 영감을 받은 AI 기반 무인 해상 정화 플랫폼. 기술과 자연의 공생." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ========== PRELOADER ========== -->
+<div class="preloader" id="preloader">
+  <div class="preloader__inner">
+    <img class="site-logo preloader__logo" alt="ARK-FLUID" src="images/logo.png" />
+    <div class="preloader__bar"><span id="preBar"></span></div>
+    <div class="preloader__pct" id="prePct">0%</div>
+    <div class="preloader__tag">FUTURE OCEAN BEGINS HERE</div>
+  </div>
+</div>
+
+<!-- ========== GLOBAL CANVAS (ocean particles / depth atmosphere) ========== -->
+<canvas id="oceanCanvas" class="ocean-canvas" aria-hidden="true"></canvas>
+<div class="depth-tint" id="depthTint" aria-hidden="true"></div>
+<div class="godrays" id="godrays" aria-hidden="true"></div>
+<canvas id="cursorCanvas" class="cursor-canvas" aria-hidden="true"></canvas>
+
+<!-- ========== SVG DEFS (reusable manta ray glyph) ========== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="rayGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7fd7ff"/>
+      <stop offset="0.5" stop-color="#2a7fd4"/>
+      <stop offset="1" stop-color="#0b2f5e"/>
+    </linearGradient>
+    <!-- ARK-FLUID manta mark: dynamic banking manta (raised wing + trailing tail) with orange accents -->
+    <symbol id="manta-glyph" viewBox="0 0 200 140">
+      <path d="M12 96
+        C30 82 52 72 80 64
+        C106 57 130 48 146 28
+        C150 22 154 16 152 12
+        L156 10
+        C155 24 150 42 132 56
+        C154 57 176 60 197 64
+        C178 62 156 61 136 62
+        C120 63 108 66 98 74
+        C80 88 60 104 44 108
+        C34 110 24 107 16 102
+        C24 100 34 99 44 97
+        C32 98 20 98 12 96 Z"
+        fill="url(#rayGrad)"/>
+      <path d="M84 68 C102 60 122 55 144 51" fill="none" stroke="#ff7a29" stroke-width="6" stroke-linecap="round"/>
+      <path d="M90 78 C108 70 126 66 148 63" fill="none" stroke="#ff7a29" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="30" cy="93" r="3.2" fill="#eaf7ff"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ========== LEFT: DEPTH INDICATOR ========== -->
+<aside class="depth-meter" id="depthMeter" aria-hidden="true">
+  <div class="depth-meter__track">
+    <span class="depth-meter__fill" id="depthFill"></span>
+  </div>
+  <div class="depth-meter__value"><b id="depthValue">0</b><i>m</i></div>
+  <div class="depth-meter__label" id="depthLabel">SURFACE</div>
+</aside>
+
+<!-- ========== RIGHT: SECTION NAV DOTS ========== -->
+<nav class="dot-nav" id="dotNav" aria-label="섹션 네비게이션"></nav>
+
+<!-- ========== TOP: SCROLL PROGRESS ========== -->
+<div class="scroll-progress" id="scrollProgress"><span></span></div>
+
+<!-- ========== HEADER ========== -->
+<header class="site-header" id="siteHeader">
+  <a class="brand" href="#hero">
+    <img class="site-logo site-logo--header" alt="ARK-FLUID" src="images/logo.png" />
+  </a>
+  <nav class="site-nav" id="siteNav">
+    <a href="#product">Product</a>
+    <a href="#points">Design</a>
+    <a href="#tech">Technology</a>
+    <a href="#simulator">Simulator</a>
+    <a href="#compare">Performance</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <div class="header-actions">
+    <button class="sound-toggle" id="soundToggle" aria-label="배경 사운드 켜기/끄기">
+      <span class="sound-toggle__bars"><i></i><i></i><i></i><i></i></span>
+      <span class="sound-toggle__label">SOUND</span>
+    </button>
+    <a href="#contact" class="btn btn--ghost magnetic" data-magnetic>견적 문의</a>
+    <button class="menu-toggle" id="menuToggle" aria-label="메뉴"><span></span><span></span></button>
+  </div>
+</header>
+
+<main id="scroller">
+
+  <!-- =============== HERO · 0m =============== -->
+  <section class="section hero hero--video" id="hero" data-depth="0" data-label="SURFACE" data-nav="Surface">
+    <video class="hero__video" id="heroVideo" autoplay muted loop playsinline preload="auto" poster="images/product/perspective.png">
+      <source src="video/hero.mp4" type="video/mp4" />
+    </video>
+    <div class="hero__overlay"></div>
+    <div class="hero__scrim" id="heroScrim"></div>
+    <div class="hero__sky"></div>
+    <div class="hero__sun" id="heroSun"></div>
+    <canvas id="waterCanvas" class="hero__water"></canvas>
+    <div class="hero__ray-wrap" id="heroRayWrap">
+      <img class="hero__photo" id="heroPhoto" src="images/product/perspective.png" alt="ARK-FLUID 무인 해상 정화 플랫폼" draggable="false" />
+      <svg class="hero__ray" viewBox="0 0 200 140"><use href="#manta-glyph"></use></svg>
+      <div class="hero__ray-glow"></div>
+    </div>
+    <div class="hero__content">
+      <div class="hero__eyebrow reveal">UNMANNED MARINE CLEANUP PLATFORM</div>
+      <h1 class="hero__title">
+        <span class="reveal-line"><span>바다를 정화하고,</span></span>
+        <span class="reveal-line"><span>바다를 <em>기록하다</em></span></span>
+      </h1>
+      <p class="hero__sub reveal"><b>ARK-FLUID</b> : 생체모방형 무인 해상 정화 플랫폼.<br/>정화의 한계를 넘어 심해 데이터 탐사까지, 새로운 해양 환경 관리의 기준을 제시합니다.</p>
+      <div class="hero__cta reveal">
+        <a href="#product" class="btn btn--primary magnetic" data-magnetic>제품 살펴보기</a>
+        <a href="#contact" class="btn btn--line magnetic" data-magnetic>상담 신청</a>
+      </div>
+    </div>
+    <div class="scroll-hint" id="scrollHint">
+      <span>SCROLL TO DIVE</span>
+      <div class="scroll-hint__mouse"><i></i></div>
+    </div>
+    <div class="hero__stats">
+      <div class="hstat reveal"><b class="count" data-to="20">0</b><i>%</i><small>에너지 효율 향상</small></div>
+      <div class="hstat reveal"><b class="count" data-to="99">0</b><i>%</i><small>이물질 차단율</small></div>
+      <div class="hstat reveal"><b class="count" data-to="24">0</b><i>/7</i><small>자율 운항</small></div>
+    </div>
+  </section>
+
+  <!-- =============== 5m · PASSING THE SURFACE =============== -->
+  <section class="section dive" id="dive" data-depth="5" data-label="TWILIGHT" data-nav="Dive">
+    <div class="dive__caption reveal">
+      <span class="tick">— 05 M</span>
+      <h2>수면을 통과합니다</h2>
+      <p>햇빛이 물속으로 스며들고, 빛은 물결에 굴절되어 흩어집니다. 지금부터, 바다의 관점에서 세상을 봅니다.</p>
+    </div>
+    <div class="bubbles" id="bubbles" aria-hidden="true"></div>
+  </section>
+
+  <!-- =============== 15m · PRODUCT INTRO =============== -->
+  <section class="section product" id="product" data-depth="15" data-label="DEEP" data-nav="Product">
+    <div class="product__inner">
+      <div class="product__text">
+        <div class="eyebrow reveal">THE PLATFORM · 15M</div>
+        <h2 class="section-title reveal">가오리에서 시작된<br/><em>완벽한 유선형</em></h2>
+        <p class="reveal">ARK-FLUID는 자연에서 가장 효율적인 유선형 생명체인 <b>가오리</b>에서 영감을 받아 설계된 무인 해상 정화 플랫폼입니다. 단순한 정화 기능을 넘어, 작업 효율과 유지보수의 편의성을 극대화한 미래지향적 솔루션입니다.</p>
+        <p class="reveal quote">“ARK-C가 현장에서 겪은 수많은 난제들을 <b>‘가오리의 유연한 곡선’</b>이라는 하나의 해법으로 풀어냈습니다. ARK-FLUID는 더 멀리, 더 꼼꼼하게, 더 깨끗하게 바다를 정화합니다.”</p>
+        <div class="product__meta reveal">
+          <div><b>Biomimicry</b><span>가오리 유체역학 구조</span></div>
+          <div><b>Autonomous</b><span>AI 자율 운항 시스템</span></div>
+          <div><b>Sustainable</b><span>자원순환 정화 사이클</span></div>
+        </div>
+      </div>
+      <div class="product__stage">
+        <div class="stage-orbit"></div>
+        <div class="stage-orbit stage-orbit--2"></div>
+        <img class="product__photo floaty" id="productPhoto" src="images/product/1234.png" alt="ARK-FLUID 제품" draggable="false" />
+        <div class="stage-glow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============== 30m · POINTS (Design) =============== -->
+  <section class="section points" id="points" data-depth="30" data-label="DEEP" data-nav="Design">
+    <header class="points__head">
+      <div class="eyebrow reveal">DESIGN POINTS · 30M</div>
+      <h2 class="section-title reveal">흐름을 거스르지 않는 설계</h2>
+    </header>
+    <div class="points__grid">
+      <article class="point-card reveal" data-num="01">
+        <div class="point-card__icon">〜</div>
+        <h3>흐름을 거스르지 않는 효율</h3>
+        <p>각진 프레임을 벗어던지고 가오리의 유선형 날개 구조를 채택했습니다. 물의 저항을 최소화하여 <b>에너지 효율을 20% 높이고</b>, 더 긴 시간 동안 넓은 구역을 정화합니다.</p>
+        <div class="point-card__flow" data-flow="1"></div>
+      </article>
+      <article class="point-card reveal" data-num="02">
+        <div class="point-card__icon">≋</div>
+        <h3>완벽하게 차단하는 이물질</h3>
+        <p>추진체를 위협하던 비닐과 노끈을 매끄러운 바디 라인이 자연스럽게 흘려보냅니다. <b>슬릿형 가드와 스크류 가이드</b>로 멈춤 없는 정화 작업을 보장합니다.</p>
+        <div class="point-card__flow" data-flow="2"></div>
+      </article>
+      <article class="point-card reveal" data-num="03">
+        <div class="point-card__icon">⧉</div>
+        <h3>하나도 놓치지 않는 수거</h3>
+        <p>기체가 움직여도 포집된 쓰레기는 나갈 수 없습니다. <b>가변 플랩 구조</b>가 오염물을 안전하게 가두어, 수거 후 육상에서의 자원순환까지 책임집니다.</p>
+        <div class="point-card__flow" data-flow="3"></div>
+      </article>
+      <article class="point-card reveal" data-num="04">
+        <div class="point-card__icon">◈</div>
+        <h3>더 쉬운 관리, 더 단단한 내구성</h3>
+        <p>틈새를 없앤 곡면 바디는 고압수 세척 시 물을 즉각 배출합니다. <b>내부로 숨겨진 카메라와 배선</b>은 거친 해상 환경에서도 온전한 성능을 유지합니다.</p>
+        <div class="point-card__flow" data-flow="4"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- =============== 360 VIEWER / EXPLODED / X-RAY / HUD =============== -->
+  <section class="section viewer" id="viewer" data-depth="45" data-label="EXPLORE" data-nav="360°">
+    <div class="viewer__head">
+      <div class="eyebrow reveal">INTERACTIVE 3D · 45M</div>
+      <h2 class="section-title reveal">제품을 직접 살펴보세요</h2>
+      <p class="reveal">영상을 통해 모든 각도에서 ARK-FLUID의 유선형 디자인과 정교한 구조를 만나보세요.</p>
+    </div>
+    <div class="viewer__stage viewer__stage--studio viewer__stage--video" id="viewerStage">
+      <video class="viewer__video" id="viewerVideo" autoplay muted loop playsinline preload="auto">
+        <source src="video/viewer.mp4" type="video/mp4" />
+      </video>
+      <div class="viewer360" id="viewer360">
+        <img class="v360-img" data-view="perspective" src="images/product/perspective.png" alt="ARK-FLUID 퍼스펙티브 뷰" draggable="false" />
+        <img class="v360-img" data-view="front" data-src="images/product/front.png" alt="ARK-FLUID 정면 뷰" loading="lazy" draggable="false" />
+        <img class="v360-img" data-view="side" data-src="images/product/side.png" alt="ARK-FLUID 측면 뷰" loading="lazy" draggable="false" />
+        <img class="v360-img" data-view="back" data-src="images/product/back.png" alt="ARK-FLUID 후면 뷰" loading="lazy" draggable="false" />
+        <img class="v360-img" data-view="bottom" data-src="images/product/bottom.png" alt="ARK-FLUID 하단 뷰" loading="lazy" draggable="false" />
+      </div>
+      <div class="viewer__hud" id="viewerHud">
+        <div class="hud-item hud-item--tl"><span>GPS</span><b id="hudGps">35.10°N 129.03°E</b></div>
+        <div class="hud-item hud-item--tr"><span>SPEED</span><b><i class="count" data-to="6">0</i>.4 kn</b></div>
+        <div class="hud-item hud-item--ml"><span>BATTERY</span><b><i class="count" data-to="87">0</i>%</b></div>
+        <div class="hud-item hud-item--mr"><span>AI DETECT</span><b class="pulse">ACTIVE</b></div>
+        <div class="hud-item hud-item--bl"><span>COLLECTED</span><b><i class="count" data-to="1240">0</i> kg</b></div>
+        <div class="hud-item hud-item--br"><span>RANGE</span><b><i class="count" data-to="312">0</i> km</b></div>
+        <div class="hud-scan"></div>
+      </div>
+      <div class="viewer__drag-hint" id="v360Hint">↔ 드래그 · 스와이프하여 회전</div>
+      <div class="v360-fallback" id="v360Fallback" hidden>
+        <svg viewBox="0 0 200 140"><use href="#manta-glyph"></use></svg>
+        <p>제품 이미지를 <b>images/product/</b> 폴더에<br/>넣으면 360° 뷰어가 활성화됩니다.</p>
+      </div>
+    </div>
+    <div class="viewer__controls viewer__controls--360">
+      <div class="v360-views" id="v360Views">
+        <button class="view-chip is-active" data-idx="0">Perspective</button>
+        <button class="view-chip" data-idx="1">Front</button>
+        <button class="view-chip" data-idx="2">Side</button>
+        <button class="view-chip" data-idx="3">Back</button>
+        <button class="view-chip" data-idx="4">Bottom</button>
+      </div>
+      <input type="range" id="v360Slider" class="v360-slider" min="0" max="4" step="0.01" value="0" aria-label="제품 회전" />
+      <div class="viewer__controls-row">
+        <button class="mode-btn" id="hudToggle">AI HUD</button>
+        <div class="viewer__zoom">
+          <button id="zoomOut" aria-label="축소">−</button>
+          <button id="zoomIn" aria-label="확대">＋</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============== 50m · COLLECTION SIMULATION =============== -->
+  <section class="section collect" id="collect" data-depth="60" data-label="ABYSS" data-nav="Collect">
+    <div class="collect__head">
+      <div class="eyebrow reveal">COLLECTION CYCLE · 60M</div>
+      <h2 class="section-title reveal">감지 → 수거 → 보관 → 순환</h2>
+    </div>
+    <div class="collect__flow" id="collectFlow">
+      <div class="cstep" data-step="1"><span class="cstep__no">01</span><b>감지</b><p>AI 비전이 부유·침적 쓰레기를 실시간으로 인식합니다.</p></div>
+      <div class="cstep" data-step="2"><span class="cstep__no">02</span><b>흡입</b><p>유선형 유로가 저항 없이 오염물을 빨아들입니다.</p></div>
+      <div class="cstep" data-step="3"><span class="cstep__no">03</span><b>보관</b><p>가변 플랩이 수거물을 안전하게 가둡니다.</p></div>
+      <div class="cstep" data-step="4"><span class="cstep__no">04</span><b>순환</b><p>육상 배출 후 자원으로 재순환됩니다.</p></div>
+      <div class="collect__line"><span id="collectLine"></span></div>
+    </div>
+    <div class="collect__viz" id="collectViz" aria-hidden="true">
+      <svg class="collect__ray" viewBox="0 0 200 140"><use href="#manta-glyph"></use></svg>
+    </div>
+  </section>
+
+  <!-- =============== CORE TECHNOLOGY (AI Underwater Exploration) =============== -->
+  <section class="section tech" id="tech" data-depth="75" data-label="R&D" data-nav="Technology">
+    <div class="tech__head">
+      <div class="eyebrow reveal">CORE TECHNOLOGY · 75M</div>
+      <h2 class="section-title reveal">AI Underwater<br/><em>Exploration</em></h2>
+      <p class="reveal">열화상 카메라 기반 위치 추적과 3차원 모델링을 결합해 수중 환경을 정밀 탐사합니다. 딥러닝 영상 분석으로 부유·침적 쓰레기와 해저 지형을 자동 인식하고, 실시간 3D 해양 지도를 생성해 <b>가장 효율적인 정화 경로를 스스로 계획</b>합니다. 탐사·분석·정화가 하나로 연결된 스마트 해양 플랫폼입니다.</p>
+    </div>
+
+    <!-- Scan pipeline (8 steps) -->
+    <div class="scan-stage" id="scanStage">
+      <div class="scan-viz">
+        <canvas id="pointCloud" class="scan-viz__cloud"></canvas>
+        <div class="scan-viz__grid"></div>
+        <div class="scan-viz__radar"><span></span></div>
+        <div class="scan-viz__hud">
+          <div class="scanhud" id="scanReadout">INITIALIZING SENSORS…</div>
+          <div class="scanhud scanhud--r">THERMAL · <b id="scanThermal">--</b>°C</div>
+          <div class="scanhud scanhud--b">POINTS · <b id="scanPoints">0</b></div>
+        </div>
+        <div class="scan-ray-wrap" id="scanRayWrap">
+        <img class="scan-ray" id="scanRay" src="images/product/1234.png" alt="ARK-FLUID" draggable="false" />
+      </div>
+      </div>
+      <ol class="scan-steps" id="scanSteps">
+        <li data-s="1"><b>바닷속 탐사</b><span>ARK-FLUID가 자율 잠수하여 탐사를 시작합니다.</span></li>
+        <li data-s="2"><b>열화상 스캔</b><span>Thermal Tracking으로 객체 위치를 안정적으로 추적합니다.</span></li>
+        <li data-s="3"><b>Point Cloud 생성</b><span>해저를 스캔하며 3차원 포인트 클라우드를 구축합니다.</span></li>
+        <li data-s="4"><b>3D 해양 지도</b><span>해저 지형이 실시간 3D 모델로 변환됩니다.</span></li>
+        <li data-s="5"><b>AI Vision 분석</b><span>딥러닝이 쓰레기와 장애물을 자동 분류합니다.</span></li>
+        <li data-s="6"><b>오염 지역 표시</b><span>HUD에 오염물 위치 마커가 나타납니다.</span></li>
+        <li data-s="7"><b>최적 경로 생성</b><span>AI가 가장 효율적인 정화 루트를 계산합니다.</span></li>
+        <li data-s="8"><b>자율 수거</b><span>ARK-FLUID가 스스로 이동하며 쓰레기를 수거합니다.</span></li>
+      </ol>
+    </div>
+
+    <!-- Tech pillars -->
+    <div class="tech__pillars">
+      <article class="pillar reveal"><span>01</span><b>Thermal Tracking</b><p>열화상 카메라 기반 위치 추적. 수중에서도 객체와 오염물을 안정적으로 탐지·추적합니다.</p></article>
+      <article class="pillar reveal"><span>02</span><b>AI Vision</b><p>딥러닝 영상 분석. 수중 쓰레기와 장애물을 자동 인식하고 분류합니다.</p></article>
+      <article class="pillar reveal"><span>03</span><b>3D Ocean Mapping</b><p>탐사 데이터로 해저 지형과 오염 분포를 실시간 3D 모델로 생성합니다.</p></article>
+      <article class="pillar reveal"><span>04</span><b>Smart Navigation</b><p>데이터를 분석해 가장 효율적인 이동·정화 루트를 자동 생성합니다.</p></article>
+      <article class="pillar reveal"><span>05</span><b>Underwater Drone</b><p>수면과 수중을 동시에 탐사하며 넓은 해역을 효율적으로 분석·정화합니다.</p></article>
+    </div>
+    <ul class="tech__keywords reveal">
+      <li>Underwater Drone</li><li>Thermal Camera Tracking</li><li>AI Vision</li><li>Deep Learning Image Analysis</li><li>3D Ocean Mapping</li><li>Autonomous Navigation</li><li>Marine Exploration System</li><li>Smart Ocean Platform</li>
+    </ul>
+  </section>
+
+  <!-- =============== OCEAN ENVIRONMENT SIMULATOR =============== -->
+  <section class="section simulator" id="simulator" data-depth="85" data-label="LIVE SIM" data-nav="Simulator">
+    <div class="sim__head">
+      <div class="eyebrow reveal">REAL-TIME OCEAN SIMULATOR</div>
+      <h2 class="section-title reveal">바다를 직접 조종해 보세요</h2>
+      <p class="reveal">파도·바람·조류·쓰레기 양을 조절하면 ARK-FLUID의 움직임과 수거 방식이 실시간으로 반응합니다.</p>
+    </div>
+    <div class="sim__body">
+      <div class="sim__canvas-wrap">
+        <canvas id="simCanvas"></canvas>
+        <div class="sim__readout glass">
+          <div><span>수거 효율</span><b id="simEff">92%</b></div>
+          <div><span>안정성</span><b id="simStab">HIGH</b></div>
+          <div><span>상태</span><b id="simStatus" class="pulse">OPTIMAL</b></div>
+        </div>
+      </div>
+      <div class="sim__controls glass">
+        <label class="sim-ctrl">
+          <span>파도 높이 <b id="wvVal">1.2 m</b></span>
+          <input type="range" id="wave" min="0" max="100" value="30" />
+        </label>
+        <label class="sim-ctrl">
+          <span>바람 세기 <b id="wdVal">12 kn</b></span>
+          <input type="range" id="wind" min="0" max="100" value="25" />
+        </label>
+        <label class="sim-ctrl">
+          <span>조류 방향 <b id="cuVal">→ E</b></span>
+          <input type="range" id="current" min="0" max="100" value="50" />
+        </label>
+        <label class="sim-ctrl">
+          <span>쓰레기 양 <b id="trVal">보통</b></span>
+          <input type="range" id="trash" min="0" max="100" value="40" />
+        </label>
+        <div class="sim__env">
+          <span>적용 환경</span>
+          <div class="env-tabs" id="envTabs">
+            <button class="env-tab is-active" data-env="harbor">항만</button>
+            <button class="env-tab" data-env="river">하천</button>
+            <button class="env-tab" data-env="reservoir">저수지</button>
+            <button class="env-tab" data-env="coast">연안</button>
+          </div>
+          <p class="env-desc" id="envDesc">복잡한 선박 동선 속에서도 정밀 회피 항법으로 부유물을 수거합니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============== PERFORMANCE COMPARE + BEFORE/AFTER =============== -->
+  <section class="section compare" id="compare" data-depth="92" data-label="RESULT" data-nav="Performance">
+    <div class="compare__head">
+      <div class="eyebrow reveal">PERFORMANCE</div>
+      <h2 class="section-title reveal">기존 방식 vs ARK-FLUID</h2>
+    </div>
+    <div class="compare__grid">
+      <div class="bars glass reveal">
+        <div class="bar-row"><span>에너지 효율</span><div class="bar"><i class="bar__old" style="--w:60%"></i><i class="bar__new" data-w="88%"></i></div></div>
+        <div class="bar-row"><span>수거 정확도</span><div class="bar"><i class="bar__old" style="--w:55%"></i><i class="bar__new" data-w="97%"></i></div></div>
+        <div class="bar-row"><span>연속 운항</span><div class="bar"><i class="bar__old" style="--w:40%"></i><i class="bar__new" data-w="90%"></i></div></div>
+        <div class="bar-row"><span>유지보수 편의</span><div class="bar"><i class="bar__old" style="--w:45%"></i><i class="bar__new" data-w="93%"></i></div></div>
+        <div class="bars__legend"><span class="lg lg--old">기존 제품</span><span class="lg lg--new">ARK-FLUID</span></div>
+      </div>
+      <div class="ba reveal">
+        <div class="ba__wrap" id="baWrap">
+          <div class="ba__before">
+            <img src="images/ocean-clean.jpg" alt="오염된 바다" loading="lazy" />
+            <canvas class="ba__grime" id="baGrime" aria-hidden="true"></canvas>
+            <div class="ba__debris" id="baDebris" aria-hidden="true"></div>
+            <span class="ba__tag ba__tag--r">BEFORE · 오염된 바다</span>
+          </div>
+          <div class="ba__after" id="baAfter">
+            <img src="images/ocean-clean.jpg" alt="ARK-FLUID 정화 후 맑아진 바다" loading="lazy" />
+            <span class="ba__tag">AFTER · 맑아진 바다</span>
+          </div>
+          <div class="ba__handle" id="baHandle"><i>‹ ›</i></div>
+        </div>
+        <p class="ba__cap">핸들을 좌우로 드래그하세요 — 오염된 바다가 다시 맑아집니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============== 100m · CLEAN OCEAN / PHILOSOPHY =============== -->
+  <section class="section philosophy" id="philosophy" data-depth="100" data-label="FUTURE" data-nav="Future">
+    <div class="philosophy__inner">
+      <div class="eyebrow reveal">NATURE × TECHNOLOGY</div>
+      <h2 class="mega reveal">Future Ocean<br/><em>Begins Here</em></h2>
+      <p class="reveal">Sustainable Innovation. 우리는 자연을 모방하는 것을 넘어, 자연과 함께 숨쉬는 기술을 만듭니다. ARK-FLUID가 지나간 자리에, 바다는 다시 푸르러집니다.</p>
+      <div class="philosophy__words">
+        <span class="reveal">Nature</span><em>×</em><span class="reveal">Technology</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============== FAQ · NEWS · DOWNLOADS =============== -->
+  <section class="section resources" id="resources" data-depth="100" data-label="INFO" data-nav="Resources">
+    <div class="res-grid">
+      <!-- FAQ -->
+      <div class="faq">
+        <h3 class="block-title reveal">자주 묻는 질문</h3>
+        <div class="accordion" id="accordion">
+          <div class="acc-item"><button class="acc-q">ARK-FLUID는 어떤 환경에서 운용 가능한가요?<i>+</i></button><div class="acc-a"><p>항만, 하천, 저수지, 연안 등 다양한 수역에서 운용 가능하며, 환경별 최적 항법 모드를 자동 적용합니다.</p></div></div>
+          <div class="acc-item"><button class="acc-q">완전 자율 운항이 가능한가요?<i>+</i></button><div class="acc-a"><p>AI 자율 항법 시스템이 탐사 데이터를 분석해 최적 경로를 스스로 계획하고 24/7 자율 운항합니다. 관제 시스템으로 원격 모니터링도 가능합니다.</p></div></div>
+          <div class="acc-item"><button class="acc-q">수거한 쓰레기는 어떻게 처리되나요?<i>+</i></button><div class="acc-a"><p>가변 플랩 구조로 안전하게 보관 후 육상에서 배출하며, 자원순환 프로세스와 연계됩니다.</p></div></div>
+          <div class="acc-item"><button class="acc-q">유지보수는 어렵지 않나요?<i>+</i></button><div class="acc-a"><p>틈새 없는 곡면 바디로 고압수 세척이 용이하며, 카메라·배선을 내부로 숨겨 내구성을 극대화했습니다.</p></div></div>
+        </div>
+      </div>
+      <!-- NEWS -->
+      <div class="news">
+        <h3 class="block-title reveal">뉴스 &amp; 소식</h3>
+        <a class="news-item reveal" href="#contact"><span class="news-tag">AWARD</span><b>ARK-FLUID, 해양기술 혁신상 수상</b><time>2026.05</time></a>
+        <a class="news-item reveal" href="#contact"><span class="news-tag">EXPO</span><b>국제 해양·조선 전시회 출품</b><time>2026.04</time></a>
+        <a class="news-item reveal" href="#contact"><span class="news-tag">UPDATE</span><b>AI 비전 v2.4 자율 항법 고도화</b><time>2026.03</time></a>
+        <a class="news-item reveal" href="#contact"><span class="news-tag">PRESS</span><b>연안 정화 실증 사업 파트너십 체결</b><time>2026.02</time></a>
+      </div>
+      <!-- DOWNLOADS -->
+      <div class="downloads">
+        <h3 class="block-title reveal">다운로드</h3>
+        <a class="dl-item reveal" href="#" data-dl="브로슈어"><i>◱</i><span>ARK-FLUID 브로슈어</span><em>PDF · 8.2MB</em></a>
+        <a class="dl-item reveal" href="#" data-dl="카탈로그"><i>▤</i><span>제품 카탈로그</span><em>PDF · 12.5MB</em></a>
+        <a class="dl-item reveal" href="#" data-dl="사양서"><i>▦</i><span>제품 사양서</span><em>PDF · 3.1MB</em></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============== CONTACT · QUOTE · BOOKING =============== -->
+  <section class="section contact" id="contact" data-depth="100" data-label="CONTACT" data-nav="Contact">
+    <div class="contact__head">
+      <div class="eyebrow reveal">GET STARTED</div>
+      <h2 class="section-title reveal">함께 바다의 미래를 시작하세요</h2>
+      <p class="reveal">견적 문의 또는 상담 예약을 남겨 주시면, 전문 컨설턴트가 빠르게 연락드립니다.</p>
+    </div>
+    <div class="contact__grid">
+      <!-- Quote form -->
+      <form class="quote glass" id="quoteForm" novalidate>
+        <h3>견적 문의</h3>
+        <div class="q-row">
+          <label>회사명<input name="company" required placeholder="ARK-C" /></label>
+          <label>담당자<input name="name" required placeholder="홍길동" /></label>
+        </div>
+        <div class="q-row">
+          <label>연락처<input name="phone" required placeholder="010-0000-0000" /></label>
+          <label>이메일<input name="email" type="email" required placeholder="you@company.com" /></label>
+        </div>
+        <label>설치 지역<input name="region" placeholder="예: 부산 연안 / 낙동강 하구" /></label>
+        <label>문의 내용<textarea name="message" rows="3" placeholder="운용 환경, 수역 규모, 도입 시기 등을 알려주세요."></textarea></label>
+        <button type="submit" class="btn btn--primary magnetic" data-magnetic>문의 접수하기</button>
+        <div class="quote__done" id="quoteDone">
+          <svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="none"/><path fill="none" d="M14 27l7 7 16-16"/></svg>
+          <b>문의가 접수되었습니다</b>
+          <span>빠른 시일 내에 연락드리겠습니다.</span>
+        </div>
+      </form>
+      <!-- Booking -->
+      <div class="booking glass">
+        <h3>상담 예약</h3>
+        <div class="booking__cal">
+          <div class="cal__head"><button id="calPrev" aria-label="이전 달">‹</button><b id="calTitle">2026 · 7월</b><button id="calNext" aria-label="다음 달">›</button></div>
+          <div class="cal__dow"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+          <div class="cal__grid" id="calGrid"></div>
+        </div>
+        <div class="booking__times" id="calTimes"><span class="booking__hint">날짜를 먼저 선택하세요</span></div>
+        <button class="btn btn--line booking__confirm" id="bookConfirm" disabled>예약 확정</button>
+        <div class="booking__msg" id="bookMsg"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============== FOOTER =============== -->
+  <footer class="site-footer">
+    <div class="footer__top">
+      <a class="brand brand--footer" href="#hero">
+        <img class="site-logo site-logo--footer" alt="ARK-FLUID" src="images/logo.png" />
+      </a>
+      <p>기술과 자연의 공생 — 가오리를 닮은 무인 해상 정화 플랫폼.</p>
+      <div class="footer__links">
+        <a href="#product">Product</a><a href="#tech">Technology</a><a href="#simulator">Simulator</a><a href="#contact">Contact</a>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 ARK-FLUID by ARK-C. All rights reserved.</span>
+      <span>Future Ocean Begins Here.</span>
+    </div>
+  </footer>
+
+</main>
+
+<!-- ========== FLOATING CHAT ========== -->
+<button class="chat-fab" id="chatFab" aria-label="상담 열기">
+  <svg viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3V4z"/></svg>
+  <span class="chat-fab__dot"></span>
+</button>
+<div class="chat-panel glass" id="chatPanel" aria-hidden="true">
+  <div class="chat-panel__head">
+    <div class="chat-panel__id">
+      <svg class="brand__mark" viewBox="0 0 200 140"><use href="#manta-glyph"></use></svg>
+      <div><b>ARK-FLUID 상담</b><span class="chat-status">● Online</span></div>
+    </div>
+    <button id="chatClose" aria-label="닫기">×</button>
+  </div>
+  <div class="chat-panel__body" id="chatBody" data-lenis-prevent>
+    <div class="chat-msg chat-msg--bot">안녕하세요. ARK-FLUID입니다. 무엇을 도와드릴까요?</div>
+  </div>
+  <div class="chat-panel__quick" id="chatQuick">
+    <button data-q="제품 문의">제품 문의</button>
+    <button data-q="견적 문의">견적 문의</button>
+    <button data-q="기술 상담">기술 상담</button>
+    <button data-q="유지보수 문의">유지보수 문의</button>
+  </div>
+  <div class="chat-panel__input">
+    <input id="chatInput" placeholder="메시지를 입력하세요…" />
+    <button id="chatSend" aria-label="전송">↑</button>
+  </div>
+</div>
+
+<!-- page transition wave overlay -->
+<div class="wave-transition" id="waveTransition" aria-hidden="true"></div>
+
+<script src="js/lib/lenis.min.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

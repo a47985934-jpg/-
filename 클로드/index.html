@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PitchProfile — 축구선수 커리어 & 스탯</title>
+  <meta name="description" content="축구선수의 골, 어시스트, 평점과 커리어를 한눈에 확인하는 프로필 서비스" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ===== 상단 바 ===== -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="#">
+        <span class="brand__mark" aria-hidden="true">⚽</span>
+        <span class="brand__name">PitchProfile</span>
+      </a>
+
+      <div class="topbar__actions">
+        <div class="fontctl" role="group" aria-label="글자 크기 조절">
+          <button class="fontctl__btn" id="fontDown" type="button" aria-label="글자 작게">A−</button>
+          <span class="fontctl__value" id="fontValue" aria-live="polite">100%</span>
+          <button class="fontctl__btn" id="fontUp" type="button" aria-label="글자 크게">A＋</button>
+          <button class="fontctl__btn fontctl__reset" id="fontReset" type="button" aria-label="글자 크기 초기화">초기화</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== 본문: 좌측 목록 + 우측 프로필 ===== -->
+  <div class="layout">
+    <!-- 선수 검색·목록 -->
+    <aside class="sidebar" aria-label="선수 목록">
+      <div class="search">
+        <span class="search__icon" aria-hidden="true">🔎</span>
+        <input id="searchInput" class="search__input" type="search"
+               placeholder="선수·구단·포지션 검색" autocomplete="off" aria-label="선수 검색" />
+      </div>
+      <div class="sidebar__count" id="listCount"></div>
+      <ul class="playerlist" id="playerList"></ul>
+      <p class="playerlist__empty" id="listEmpty" hidden>검색 결과가 없어요.</p>
+    </aside>
+
+    <!-- 선택된 선수 프로필 -->
+    <main class="container" id="profileRoot"></main>
+  </div>
+
+  <footer class="footer">
+    <p>PitchProfile · 데모 데이터입니다 · 순수 HTML · CSS · JavaScript</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
